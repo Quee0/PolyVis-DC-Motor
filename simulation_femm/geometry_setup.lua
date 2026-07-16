@@ -13,12 +13,17 @@ mag_count = 8
 mag_material = "N45"
 
 rotor_core_r = 3.5
+rotor_core_material = "1117 Steel"
+plastic_material = "Air"
 
 coil_groove_in_r = 4
 coil_groove_out_r = 7
 coil_groove_ang = 10 --not rad
 coil_groove_count = 12
+coil_turns = 20
+coil_amps = 4
 coil_material = "24 AWG"
+coil_rotor_fi0 = 90 --not rad
 
 function vector_z_rotation_matrix(x, y, theta)
     -- matrix multiplication formula
@@ -33,7 +38,11 @@ mi_probdef(0, "millimeters", "planar", 1e-8, 0, depth)
 mi_getmaterial(empty_material)
 mi_getmaterial(mag_material)
 mi_getmaterial(stator_material)
+mi_getmaterial(plastic_material)
+mi_getmaterial(rotor_core_material)
 mi_getmaterial(coil_material)
+
+mi_maximize()
 
 -- OUT STATOR
 for i = 0, 3 do
@@ -65,6 +74,7 @@ for i = 0, 3 do
     mi_addarc(x1, y1, x2, y2, 90, 1)
 end
 
+-- STATOR MATERIAL
 mi_addblocklabel(0, stator_r_out-(stator_out_d/2))
 mi_selectlabel(0, stator_r_out-(stator_out_d/2))
 mi_setblockprop(stator_material, 1, 0, "<None>", 0, 1, 0)
@@ -79,6 +89,12 @@ mag_node_se = {-mag_node_sw_x, -mag_node_sw_y}
 mag_node_nw = {mag_node_sw_x, -mag_node_sw_y+mag_size_y}
 mag_node_ne = {-mag_node_sw_x, -mag_node_sw_y+mag_size_y}
 mag_node_center = {0, mag_node_nw[2]-(mag_size_y/2)}
+
+-- AIR MATERIAL
+mi_addblocklabel(mag_node_nw[1], mag_node_nw[2]+0.01)
+mi_selectlabel(mag_node_nw[1], mag_node_nw[2]+0.01)
+mi_setblockprop(empty_material, 1, 0, "<None>", 0, 1, 0)
+mi_clearselected()
 
 for i = 0, mag_count-1 do
     local theta = 2*PI*i/mag_count
@@ -99,19 +115,20 @@ for i = 0, mag_count-1 do
     mi_addsegment(ne_x, ne_y, nw_x, nw_y)
     mi_addsegment(nw_x, nw_y, sw_x, sw_y)
 
+    -- AIR BEHIND MAGNET AND MAGNET MATERIAL
     mi_addblocklabel(center_x, center_y)
     mi_selectlabel(center_x, center_y)
 
     local fi = (theta*180)/PI+90
     if i >= (mag_count-1)/2 then fi = fi + 180 end
 
-    mi_setblockprop(mag_material, 1, 0, "<None>", fi, 2, 0)
+    mi_setblockprop(mag_material, 1, 0, "<None>", fi, 1, 0)
     mi_clearselected()
 
     local air_pos_x, air_pos_y = vector_z_rotation_matrix(mag_node_center[1], (mag_node_center[2]-(mag_size_y/2+0.01)), theta)
     mi_addblocklabel(air_pos_x, air_pos_y)
     mi_selectlabel(air_pos_x, air_pos_y)
-    mi_setblockprop(empty_material, 1, 0, "<None>", 0, 4, 0)
+    mi_setblockprop(empty_material, 1, 0, "<None>", 0, 1, 0)
     mi_clearselected()
 end
 
@@ -130,13 +147,17 @@ for i = 0, 3 do
     mi_addarc(x1, y1, x2, y2, 90, 1)
 end
 
+-- ROTOR MATERIAL
 mi_addblocklabel(0, 0)
 mi_selectlabel(0, 0)
-mi_setblockprop(stator_material, 1, 0, "<None>", 0, 3, 0)
+mi_setblockprop(rotor_core_material, 1, 0, "<None>", 0, 2, 0)
 mi_clearselected()
 
+-- WINDINGS
+mi_addcircprop("Winding", coil_amps, 1)
+
 for i = 0, coil_groove_count-1 do
-    local theta = ((2 * PI)/12) * i
+    local theta = ((2 * PI)/coil_groove_count) * i
 
     local in_x = coil_groove_in_r * cos(theta)
     local in_y = coil_groove_in_r * sin(theta)
@@ -155,22 +176,51 @@ for i = 0, coil_groove_count-1 do
 
     mi_addsegment(in_x, in_y, out_x1, out_y1)
     mi_addsegment(in_x, in_y, out_x2, out_y2)
-    mi_addsegment(out_x1, out_y1, out_x2, out_y2)
-
+    -- mi_addsegment(out_x1, out_y1, out_x2, out_y2)
+    mi_addarc(out_x2, out_y2, out_x1, out_y1, 2 * asin(sqrt((out_x1 - out_x2)^2 + (out_y1 - out_y2)^2) / (2 * coil_groove_out_r)) * (180 / PI), 1)
+    
+    local theta_prev = ((2 * PI)/coil_groove_count) * (i - 1)
+    local prev_out_x1 = coil_groove_out_r * cos(theta_prev + fi)
+    local prev_out_y1 = coil_groove_out_r * sin(theta_prev + fi)
+    
+    if i ~= 0 then 
+        -- mi_addsegment(out_x2, out_y2, prev_out_x1, prev_out_y1)
+        mi_addarc(prev_out_x1, prev_out_y1, out_x2, out_y2, 2 * asin(sqrt((out_x2 - prev_out_x1)^2 + (out_y2 - prev_out_y1)^2) / (2 * coil_groove_out_r)) * (180 / PI), 1)
+    end
+    
+    -- LABELING
+    local alfa = (360*theta)/(2*PI) --theta in not rad
+    if (alfa>= 180 and alfa< 360) then
+        direction = -1 -- into
+    else
+        direction = 1 -- out
+    end
+    
     local label_x = (coil_groove_in_r+0.1) * cos(theta)
     local label_y = (coil_groove_in_r+0.1) * sin(theta)
-
+    
+    -- WINDING MATERIAL
     mi_addblocklabel(label_x, label_y)
     mi_selectlabel(label_x, label_y)
-    mi_setblockprop(coil_material, 1, 0, "<None>", 0, 5, 0)
+    mi_setblockprop(coil_material, 1, 0, "Winding", 0, 2, direction*coil_turns)
     mi_clearselected()
 end
 
--- Material
+--last connection
+local fi_last = ((coil_groove_ang*2*PI)/360)/2
+local theta_first = 0
+local first_out_x2 = coil_groove_out_r * cos(theta_first - fi_last)
+local first_out_y2 = coil_groove_out_r * sin(theta_first - fi_last)
+local theta_last = ((2 * PI)/coil_groove_count) * (coil_groove_count - 1)
+local last_out_x1 = coil_groove_out_r * cos(theta_last + fi_last)
+local last_out_y1 = coil_groove_out_r * sin(theta_last + fi_last)
+-- mi_addsegment(first_out_x2, first_out_y2, last_out_x1, last_out_y1)
+mi_addarc(last_out_x1, last_out_y1, first_out_x2, first_out_y2, 2 * asin(sqrt((first_out_x2 - last_out_x1)^2 + (first_out_y2 - last_out_y1)^2) / (2 * coil_groove_out_r)) * (180 / PI), 1)
 
-mi_addblocklabel(0, rotor_core_r+0.1)
-mi_selectlabel(0, rotor_core_r+0.1)
-mi_setblockprop(empty_material, 1, 0, "<None>", 0, 4, 0)
+-- NON CORE ROTOR MATERIAL
+mi_addblocklabel(0, rotor_core_r+0.01)
+mi_selectlabel(0, rotor_core_r+0.01)
+mi_setblockprop(plastic_material, 1, 0, "<None>", 0, 2, 0)
 mi_clearselected()
 
 mi_zoomnatural()
@@ -183,3 +233,7 @@ mi_analyze()
 mi_loadsolution()
 
 mo_showdensityplot(1, 0, 0.6, 0, "bmag")
+mo_groupselectblock(2)
+stress_tensor_torque = mo_blockintegral(22)
+
+print(stress_tensor_torque)
