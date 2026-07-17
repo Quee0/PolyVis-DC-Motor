@@ -1,4 +1,5 @@
 input_parameters = {
+    session_id = 1,
     empty_material = "Air",
     depth = 50,
 
@@ -34,6 +35,7 @@ end
 
 function run_calculations(parameters)
     -- parameters
+    local session_id = parameters.session_id
     local empty_material = parameters.empty_material
     local depth = parameters.depth
 
@@ -261,9 +263,20 @@ function run_calculations(parameters)
 
     mo_showdensityplot(1, 0, 0.6, 0, "bmag")
     mo_groupselectblock(2)
-    stress_tensor_torque = mo_blockintegral(22)
+    local stress_tensor_torque = mo_blockintegral(22)
 
-    print(stress_tensor_torque)
+    -- OUTPUT
+    
+    local file = openfile("output.csv", "a")
+    if file ~= nil then
+        local append_text = session_id .. "," .. stress_tensor_torque .. "\n"
+        write(file, append_text)
+        closefile(file)
+    else 
+        print("File append error")
+    end
+
 end
 
 run_calculations(input_parameters)
+quit()
