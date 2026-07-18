@@ -1,30 +1,30 @@
-input_parameters = {
-    session_id = 1,
-    empty_material = "Air",
-    depth = 50,
+-- input_parameters = {
+--     session_id = 1,
+--     empty_material = "Air",
+--     depth = 50,
 
-    stator_r_out = 10.65,
-    stator_out_d = 2,
-    stator_material = "1117 Steel",
+--     stator_r_out = 10.65,
+--     stator_out_d = 2,
+--     stator_material = "1117 Steel",
 
-    mag_size_x = 4,
-    mag_size_y = 0.5,
-    mag_size_z = depth,
-    mag_count = 8,
-    mag_material = "N45",
+--     mag_size_x = 4,
+--     mag_size_y = 0.5,
+--     mag_size_z = depth,
+--     mag_count = 8,
+--     mag_material = "N45",
 
-    rotor_core_r = 3.5,
-    rotor_core_material = "1117 Steel",
-    plastic_material = "Air",
+--     rotor_core_r = 3.5,
+--     rotor_core_material = "1117 Steel",
+--     plastic_material = "Air",
 
-    coil_groove_in_r = 4,
-    coil_groove_out_r = 7,
-    coil_groove_ang = 10, --not rad
-    coil_groove_count = 12,
-    coil_turns = 20,
-    coil_amps = 4,
-    coil_material = "24 AWG",
-}
+--     coil_groove_in_r = 4,
+--     coil_groove_out_r = 7,
+--     coil_groove_ang = 10, --not rad
+--     coil_groove_count = 12,
+--     coil_turns = 20,
+--     coil_amps = 4,
+--     coil_material = "24 AWG",
+-- }
 
 function vector_z_rotation_matrix(x, y, theta)
     -- matrix multiplication formula
@@ -256,7 +256,6 @@ function run_calculations(parameters)
     mi_zoomnatural()
 
     mi_saveas("motor_geometry.FEM")
-    mi_createmesh()
 
     mi_analyze()
     mi_loadsolution()
@@ -276,7 +275,14 @@ function run_calculations(parameters)
         print("File append error")
     end
 
+    mo_close()
+    mi_close()
 end
 
-run_calculations(input_parameters)
+dofile("femm_input.lua")
+local i = 1
+while parameters_list[i] ~= nil do
+    run_calculations(parameters_list[i])
+    i = i + 1
+end
 quit()

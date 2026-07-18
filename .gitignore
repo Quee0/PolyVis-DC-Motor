@@ -2,3 +2,4 @@
 /simulation_femm/*.ans
 /simulation_femm/*.FEM
 /simulation_femm/tempCodeRunnerFile.py
+/simulation_femm/femm_input.lua
