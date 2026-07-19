@@ -1,6 +1,7 @@
 import subprocess
-import itertools
-import numpy
+import random
+import math
+import numpy as np
 from pathlib import Path
 from dataclasses import dataclass, asdict
 
@@ -18,7 +19,6 @@ class Parameters_set:
 
     mag_size_x: float 
     mag_size_y: float
-    mag_size_z: float 
     mag_count: int
     mag_material: str
 
@@ -34,6 +34,92 @@ class Parameters_set:
     coil_amps: float
     coil_material: str
 
+
+def create_parameters_sets_monte_carlo(n):
+    empty_materials = ["Air"]
+    depths = [5, 10, 20, 30]
+
+    stator_r_outs = [3, 4, 6, 8, 10]
+    stator_out_ds = [1, 2, 3, 4]
+    stator_materials = ["1018 Steel"]
+
+    mag_size_xs = [3.0, 4.0, 5.0, 6.0, 7.0] 
+    mag_size_ys = [1.0, 1.5, 2.0, 3.0, 4.0]
+    mag_counts = [4,6,8,10,12,14]
+    mag_materials = ["N35", "N42", "N52"]
+
+    rotor_core_rs = [1,2,3,4,5,6,7,8,9]
+    rotor_core_materials = ["1018 Steel"]
+    plastic_materials = ["Air"]
+
+    coil_groove_in_rs = np.round(np.linspace(1, 10, 20)).tolist()
+    coil_groove_out_rs = np.round(np.linspace(1, 10, 20)).tolist()
+    coil_groove_angs = np.round(np.linspace(1, 10, 20)).tolist()
+    coil_groove_counts = [2,4,6,8,10,12,14] 
+    coil_turnss = np.linspace(1, 100, 20, dtype=int).tolist()
+    coil_ampss = np.round(np.linspace(1, 10, 20)).tolist()
+    coil_materials = ["18 AWG", "20 AWG", "22 AWG", "24 AWG", "26 AWG"]
+
+    combination_handler = [
+        empty_materials,
+        depths,
+        stator_r_outs,
+        stator_out_ds,
+        stator_materials,
+        mag_size_xs,
+        mag_size_ys,
+        mag_counts,
+        mag_materials,
+        rotor_core_rs,
+        rotor_core_materials,
+        plastic_materials,
+        coil_groove_in_rs,
+        coil_groove_out_rs,
+        coil_groove_angs,
+        coil_groove_counts,
+        coil_turnss,
+        coil_ampss,
+        coil_materials
+    ]
+
+    all_param_combination = []
+
+    for index in range(1, n + 1):
+        random_params = [random.choice(p_list) for p_list in combination_handler]
+        param_set = Parameters_set(index, *random_params)
+        all_param_combination.append(param_set)
+
+    return all_param_combination
+
+def validate_parameters_sets(params):
+    filterted_params = []
+
+    flag = True
+    for param_set in params:
+        flag = True
+        if param_set.rotor_core_r >= (param_set.coil_groove_in_r - 0.5): flag = False
+        if param_set.coil_groove_in_r >= (param_set.coil_groove_out_r - 1.0): flag = False
+        if not (param_set.coil_groove_out_r - param_set.coil_groove_in_r > 1): flag = False
+        
+        R = param_set.stator_r_out - param_set.stator_out_d
+        w = param_set.mag_size_x
+        h = param_set.mag_size_y
+        if R <= 0 or (w / 2) >= R: 
+            flag = False
+        else:
+            d_zewn = math.sqrt(R**2 - (w / 2)**2)
+            d_min = d_zewn - h
+            
+            if param_set.coil_groove_out_r >= (d_min - 0.5): 
+                flag = False
+
+            max_w_half = d_min * math.tan(math.pi / param_set.mag_count)
+            
+            if (w / 2) >= max_w_half:
+                flag = False
+
+        if flag: filterted_params.append(param_set)
+    return filterted_params
 
 def create_parameters_file(file_name, params):
     
@@ -55,72 +141,21 @@ def create_parameters_file(file_name, params):
         file.write("}")
 
 def main():
+    work_dir = Path(__file__).parent.absolute()
 
-    with open("output.csv", "w") as file: 
+    with open(work_dir/"output.csv", "w") as file: 
         file.close()
 
-    work_dir = Path(__file__).parent.absolute()
     command = f'"{femm_exe}" -lua-script="geometry_setup.lua"'
 
-    parametry_test = [Parameters_set(
-        session_id = 1,
-        empty_material = "Air",
-        depth = 50,
+    print(f"Generating parameters")
+    parameters = create_parameters_sets_monte_carlo(1000000)
+    valid_parameters = validate_parameters_sets(parameters)
+    create_parameters_file(work_dir/"femm_input.lua", valid_parameters)
+    print(f"Validated {round((len(valid_parameters)/len(parameters))*100,3)}% - starting {len(valid_parameters)} simulations")
 
-        stator_r_out = 10.65,
-        stator_out_d = 2,
-        stator_material = "1117 Steel",
-
-        mag_size_x = 4,
-        mag_size_y = 0.5,
-        mag_size_z = 50,
-        mag_count = 8,
-        mag_material = "N45",
-
-        rotor_core_r = 3.5,
-        rotor_core_material = "1117 Steel",
-        plastic_material = "Air",
-
-        coil_groove_in_r = 4,
-        coil_groove_out_r = 7,
-        coil_groove_ang = 10,
-        coil_groove_count = 12,
-        coil_turns = 20,
-        coil_amps = 4,
-        coil_material = "24 AWG",
-    ), Parameters_set(
-        session_id = 1,
-        empty_material = "Air",
-        depth = 50,
-
-        stator_r_out = 10.65,
-        stator_out_d = 2,
-        stator_material = "1117 Steel",
-
-        mag_size_x = 4,
-        mag_size_y = 0.5,
-        mag_size_z = 50,
-        mag_count = 8,
-        mag_material = "N45",
-
-        rotor_core_r = 3.5,
-        rotor_core_material = "1117 Steel",
-        plastic_material = "Air",
-
-        coil_groove_in_r = 4,
-        coil_groove_out_r = 7,
-        coil_groove_ang = 10,
-        coil_groove_count = 12,
-        coil_turns = 20,
-        coil_amps = 4,
-        coil_material = "24 AWG",
-    )
-    ]
-
-    create_parameters_file("femm_input.lua", parametry_test)
-    
     try:
-        subprocess.run(command, shell=True, cwd=str(work_dir), check=True, timeout=15)
+        subprocess.run(command, shell=True, cwd=str(work_dir), check=True)
         print("Done")
     except subprocess.CalledProcessError as e:
         print(f"FEMM SIMULATION ERROR: {e}")

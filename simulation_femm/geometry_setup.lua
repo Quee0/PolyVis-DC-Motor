@@ -9,7 +9,6 @@
 
 --     mag_size_x = 4,
 --     mag_size_y = 0.5,
---     mag_size_z = depth,
 --     mag_count = 8,
 --     mag_material = "N45",
 
@@ -46,7 +45,6 @@ function run_calculations(parameters)
 
     local mag_size_x = parameters.mag_size_x
     local mag_size_y = parameters.mag_size_y
-    local mag_size_z = parameters.mag_size_z
     local mag_count = parameters.mag_count
     local mag_material = parameters.mag_material
 
@@ -282,6 +280,7 @@ end
 dofile("femm_input.lua")
 local i = 1
 while parameters_list[i] ~= nil do
+    print("Running simulation nr: " .. i)
     run_calculations(parameters_list[i])
     i = i + 1
 end
