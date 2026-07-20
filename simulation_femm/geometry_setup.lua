@@ -1,30 +1,3 @@
--- input_parameters = {
---     session_id = 1,
---     empty_material = "Air",
---     depth = 50,
-
---     stator_r_out = 10.65,
---     stator_out_d = 2,
---     stator_material = "1117 Steel",
-
---     mag_size_x = 4,
---     mag_size_y = 0.5,
---     mag_count = 8,
---     mag_material = "N45",
-
---     rotor_core_r = 3.5,
---     rotor_core_material = "1117 Steel",
---     plastic_material = "Air",
-
---     coil_groove_in_r = 4,
---     coil_groove_out_r = 7,
---     coil_groove_ang = 10, --not rad
---     coil_groove_count = 12,
---     coil_turns = 20,
---     coil_amps = 4,
---     coil_material = "24 AWG",
--- }
-
 function vector_z_rotation_matrix(x, y, theta)
     -- matrix multiplication formula
     local new_x = x * cos(theta) - y * sin(theta)
@@ -118,14 +91,10 @@ function run_calculations(parameters)
     mag_node_ne = {-mag_node_sw_x, -mag_node_sw_y+mag_size_y}
     mag_node_center = {0, mag_node_nw[2]-(mag_size_y/2)}
 
-    -- AIR MATERIAL
-    mi_addblocklabel(mag_node_nw[1], mag_node_nw[2]+0.01)
-    mi_selectlabel(mag_node_nw[1], mag_node_nw[2]+0.01)
-    mi_setblockprop(empty_material, 1, 0, "<None>", 0, 1, 0)
-    mi_clearselected()
+    local correction_theta = (PI)/mag_count
 
     for i = 0, mag_count-1 do
-        local theta = 2*PI*i/mag_count
+        local theta = (2 * PI * i / mag_count) + correction_theta
 
         local sw_x, sw_y = vector_z_rotation_matrix(mag_node_sw[1], mag_node_sw[2], theta)
         local se_x, se_y = vector_z_rotation_matrix(mag_node_se[1], mag_node_se[2], theta)
@@ -133,6 +102,14 @@ function run_calculations(parameters)
         local ne_x, ne_y = vector_z_rotation_matrix(mag_node_ne[1], mag_node_ne[2], theta)
         local center_x, center_y = vector_z_rotation_matrix(mag_node_center[1], mag_node_center[2], theta)
         
+        -- AIR MATERIAL
+        if i == 0 then 
+            mi_addblocklabel(nw_x, nw_y+0.01)
+            mi_selectlabel(nw_x, nw_y+0.01)
+            mi_setblockprop(empty_material, 1, 0, "<None>", 0, 1, 0)
+            mi_clearselected()
+        end
+
         mi_addnode(sw_x, sw_y)
         mi_addnode(se_x, se_y)
         mi_addnode(nw_x, nw_y)
@@ -147,8 +124,11 @@ function run_calculations(parameters)
         mi_addblocklabel(center_x, center_y)
         mi_selectlabel(center_x, center_y)
 
-        local fi = (theta*180)/PI+90
-        if i >= (mag_count-1)/2 then fi = fi + 180 end
+        local fi = (theta * 180) / PI + 90
+        
+        if i >= (mag_count-1)/2 then 
+            fi = fi + 180 
+        end
 
         mi_setblockprop(mag_material, 1, 0, "<None>", fi, 1, 0)
         mi_clearselected()
@@ -184,13 +164,17 @@ function run_calculations(parameters)
     -- WINDINGS
     mi_addcircprop("Winding", coil_amps, 1)
 
+    local correction_theta_coil = (PI/coil_groove_count) - (PI/2)
+
     for i = 0, coil_groove_count-1 do
         local theta = ((2 * PI)/coil_groove_count) * i
 
         local in_x = coil_groove_in_r * cos(theta)
         local in_y = coil_groove_in_r * sin(theta)
 
-        mi_addnode(in_x, in_y)
+        local rotated_in_x, rotated_in_y = vector_z_rotation_matrix(in_x, in_y, correction_theta_coil)
+
+        mi_addnode(rotated_in_x, rotated_in_y)
         
         local fi = ((coil_groove_ang*2*PI)/360)/2
         local out_x1 = coil_groove_out_r * cos(theta+fi)
@@ -199,37 +183,40 @@ function run_calculations(parameters)
         local out_x2 = coil_groove_out_r * cos(theta-fi)
         local out_y2 = coil_groove_out_r * sin(theta-fi)
         
-        mi_addnode(out_x1, out_y1)
-        mi_addnode(out_x2, out_y2)
+        local rotated_out_x1, rotated_out_y1 = vector_z_rotation_matrix(out_x1, out_y1, correction_theta_coil)
+        local rotated_out_x2, rotated_out_y2 = vector_z_rotation_matrix(out_x2, out_y2, correction_theta_coil)
 
-        mi_addsegment(in_x, in_y, out_x1, out_y1)
-        mi_addsegment(in_x, in_y, out_x2, out_y2)
-        -- mi_addsegment(out_x1, out_y1, out_x2, out_y2)
-        mi_addarc(out_x2, out_y2, out_x1, out_y1, 2 * asin(sqrt((out_x1 - out_x2)^2 + (out_y1 - out_y2)^2) / (2 * coil_groove_out_r)) * (180 / PI), 1)
+        mi_addnode(rotated_out_x1, rotated_out_y1)
+        mi_addnode(rotated_out_x2, rotated_out_y2)
+
+        mi_addsegment(rotated_in_x, rotated_in_y, rotated_out_x1, rotated_out_y1)
+        mi_addsegment(rotated_in_x, rotated_in_y, rotated_out_x2, rotated_out_y2)
+        mi_addarc(rotated_out_x2, rotated_out_y2, rotated_out_x1, rotated_out_y1, 2 * asin(sqrt((rotated_out_x1 - rotated_out_x2)^2 + (rotated_out_y1 - rotated_out_y2)^2) / (2 * coil_groove_out_r)) * (180 / PI), 1)
         
         local theta_prev = ((2 * PI)/coil_groove_count) * (i - 1)
         local prev_out_x1 = coil_groove_out_r * cos(theta_prev + fi)
         local prev_out_y1 = coil_groove_out_r * sin(theta_prev + fi)
+
+        local rotated_prev_out_x1, rotated_prev_out_y1 = vector_z_rotation_matrix(prev_out_x1, prev_out_y1, correction_theta_coil)
         
         if i ~= 0 then 
-            -- mi_addsegment(out_x2, out_y2, prev_out_x1, prev_out_y1)
-            mi_addarc(prev_out_x1, prev_out_y1, out_x2, out_y2, 2 * asin(sqrt((out_x2 - prev_out_x1)^2 + (out_y2 - prev_out_y1)^2) / (2 * coil_groove_out_r)) * (180 / PI), 1)
+            mi_addarc(rotated_prev_out_x1, rotated_prev_out_y1, rotated_out_x2, rotated_out_y2, 2 * asin(sqrt((rotated_out_x2 - rotated_prev_out_x1)^2 + (rotated_out_y2 - rotated_prev_out_y1)^2) / (2 * coil_groove_out_r)) * (180 / PI), 1)
         end
         
         -- LABELING
-        local alfa = (360*theta)/(2*PI) --theta in not rad
-        if (alfa>= 180 and alfa< 360) then
-            direction = -1 -- into
-        else
-            direction = 1 -- out
-        end
+           local direction = 1
+            if i >= coil_groove_count / 2 then
+                direction = -1
+            end
         
         local label_x = (coil_groove_in_r+0.1) * cos(theta)
         local label_y = (coil_groove_in_r+0.1) * sin(theta)
+
+        local rotated_label_x, rotated_label_y = vector_z_rotation_matrix(label_x, label_y, correction_theta_coil)
         
         -- WINDING MATERIAL
-        mi_addblocklabel(label_x, label_y)
-        mi_selectlabel(label_x, label_y)
+        mi_addblocklabel(rotated_label_x, rotated_label_y)
+        mi_selectlabel(rotated_label_x, rotated_label_y)
         mi_setblockprop(coil_material, 1, 0, "Winding", 0, 2, direction*coil_turns)
         mi_clearselected()
     end
@@ -242,8 +229,10 @@ function run_calculations(parameters)
     local theta_last = ((2 * PI)/coil_groove_count) * (coil_groove_count - 1)
     local last_out_x1 = coil_groove_out_r * cos(theta_last + fi_last)
     local last_out_y1 = coil_groove_out_r * sin(theta_last + fi_last)
-    -- mi_addsegment(first_out_x2, first_out_y2, last_out_x1, last_out_y1)
-    mi_addarc(last_out_x1, last_out_y1, first_out_x2, first_out_y2, 2 * asin(sqrt((first_out_x2 - last_out_x1)^2 + (first_out_y2 - last_out_y1)^2) / (2 * coil_groove_out_r)) * (180 / PI), 1)
+
+    local rotated_first_out_x2, rotated_first_out_y2 = vector_z_rotation_matrix(first_out_x2, first_out_y2, correction_theta_coil)
+    local rotated_last_out_x1, rotated_last_out_y1 = vector_z_rotation_matrix(last_out_x1, last_out_y1, correction_theta_coil)
+    mi_addarc(rotated_last_out_x1, rotated_last_out_y1, rotated_first_out_x2, rotated_first_out_y2, 2 * asin(sqrt((rotated_first_out_x2 - rotated_last_out_x1)^2 + (rotated_first_out_y2 - rotated_last_out_y1)^2) / (2 * coil_groove_out_r)) * (180 / PI), 1)
 
     -- NON CORE ROTOR MATERIAL
     mi_addblocklabel(0, rotor_core_r+0.01)
@@ -254,6 +243,7 @@ function run_calculations(parameters)
     mi_zoomnatural()
 
     mi_saveas("motor_geometry.FEM")
+    -- pause()
 
     mi_analyze()
     mi_loadsolution()
@@ -263,7 +253,6 @@ function run_calculations(parameters)
     local stress_tensor_torque = mo_blockintegral(22)
 
     -- OUTPUT
-    
     local file = openfile("output.csv", "a")
     if file ~= nil then
         local append_text = session_id .. "," .. stress_tensor_torque .. "\n"
@@ -278,10 +267,37 @@ function run_calculations(parameters)
 end
 
 dofile("femm_input.lua")
+showconsole()
 local i = 1
 while parameters_list[i] ~= nil do
-    print("Running simulation nr: " .. i)
+    print("Running simulation nr: " .. i .. "   [ id: " .. parameters_list[i].session_id .. " ]")
     run_calculations(parameters_list[i])
     i = i + 1
 end
+
+-- test_param = {
+-- session_id = 37787,
+-- empty_material = "Air",
+-- depth = 5,
+-- stator_r_out = 10,
+-- stator_out_d = 1,
+-- stator_material = "1018 Steel",
+-- mag_size_x = 3.0,
+-- mag_size_y = 2.0,
+-- mag_count = 12,
+-- mag_material = "N52",
+-- rotor_core_r = 3,
+-- rotor_core_material = "1018 Steel",
+-- plastic_material = "Air",
+-- coil_groove_in_r = 4.0,
+-- coil_groove_out_r = 6.0,
+-- coil_groove_ang = 13.0,
+-- coil_groove_count = 14,
+-- coil_turns = 16,
+-- coil_amps = 7.0,
+-- coil_material = "22 AWG",
+-- }
+
+-- run_calculations(test_param)
+
 quit()

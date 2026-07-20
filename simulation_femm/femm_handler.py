@@ -54,8 +54,8 @@ def create_parameters_sets_monte_carlo(n):
 
     coil_groove_in_rs = np.round(np.linspace(1, 10, 20)).tolist()
     coil_groove_out_rs = np.round(np.linspace(1, 10, 20)).tolist()
-    coil_groove_angs = np.round(np.linspace(1, 10, 20)).tolist()
-    coil_groove_counts = [2,4,6,8,10,12,14] 
+    coil_groove_angs = np.round(np.linspace(5, 20, 20)).tolist()
+    coil_groove_counts = [6,8,10,12,14] 
     coil_turnss = np.linspace(1, 100, 20, dtype=int).tolist()
     coil_ampss = np.round(np.linspace(1, 10, 20)).tolist()
     coil_materials = ["18 AWG", "20 AWG", "22 AWG", "24 AWG", "26 AWG"]
@@ -97,7 +97,7 @@ def validate_parameters_sets(params):
     flag = True
     for param_set in params:
         flag = True
-        if param_set.rotor_core_r >= (param_set.coil_groove_in_r - 0.5): flag = False
+        if param_set.rotor_core_r >= (param_set.coil_groove_in_r - 0.3): flag = False
         if param_set.coil_groove_in_r >= (param_set.coil_groove_out_r - 1.0): flag = False
         if not (param_set.coil_groove_out_r - param_set.coil_groove_in_r > 1): flag = False
         
