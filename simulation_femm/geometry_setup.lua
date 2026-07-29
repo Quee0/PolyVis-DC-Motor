@@ -248,14 +248,75 @@ function run_calculations(parameters)
     mi_analyze()
     mi_loadsolution()
 
-    mo_showdensityplot(1, 0, 0.6, 0, "bmag")
+    -- mo_showdensityplot(1, 0, 0.6, 0, "bmag")
     mo_groupselectblock(2)
     local stress_tensor_torque = mo_blockintegral(22)
 
     -- OUTPUT
     local file = openfile("output.csv", "a")
     if file ~= nil then
-        local append_text = session_id .. "," .. stress_tensor_torque .. "\n"
+        
+        local R = stator_r_out - stator_out_d
+        local w = mag_size_x
+        local h = mag_size_y
+        local d_zewn = sqrt(R^2 - (w / 2)^2)
+        local d_min = d_zewn - h
+        
+        local current, volts, flux_re = mo_getcircuitproperties("Winding")
+        local impedance = volts/current
+        local k_const = stress_tensor_torque/current
+        
+        local v_supply = 24 --VOLTS CHOSEN FOR COMPARASON
+        local omega_nom = (v_supply - volts)/k_const
+        local rpm_nom = (omega_nom*30)/(PI)
+        local power_nom = omega_nom * stress_tensor_torque
+        
+        local power_elec = v_supply * current
+        local efficiency_nom = (power_nom / power_elec) * 100 --%
+        
+        local air_gap = d_min - coil_groove_out_r
+
+        local append_text = session_id
+        append_text = append_text .. "," .. stress_tensor_torque
+        append_text = append_text .. "," .. air_gap
+        
+        append_text = append_text .. "," .. current
+        append_text = append_text .. "," .. volts
+        append_text = append_text .. "," .. impedance
+        append_text = append_text .. "," .. flux_re
+        
+        append_text = append_text .. "," .. k_const
+        append_text = append_text .. "," .. v_supply
+        append_text = append_text .. "," .. omega_nom
+        append_text = append_text .. "," .. rpm_nom
+        append_text = append_text .. "," .. power_nom
+        append_text = append_text .. "," .. efficiency_nom
+
+        append_text = append_text .. "," .. depth
+
+        append_text = append_text .. "," .. stator_r_out
+        append_text = append_text .. "," .. stator_out_d
+        append_text = append_text .. "," .. rotor_core_r
+
+        append_text = append_text .. "," .. mag_size_x
+        append_text = append_text .. "," .. mag_size_y
+        append_text = append_text .. "," .. mag_count
+
+        append_text = append_text .. "," .. coil_groove_in_r
+        append_text = append_text .. "," .. coil_groove_out_r
+        append_text = append_text .. "," .. coil_groove_ang
+        append_text = append_text .. "," .. coil_groove_count
+        append_text = append_text .. "," .. coil_amps
+        append_text = append_text .. "," .. coil_turns
+
+        append_text = append_text .. "," .. mag_material
+        append_text = append_text .. "," .. rotor_core_material
+        append_text = append_text .. "," .. stator_material
+        append_text = append_text .. "," .. plastic_material
+        append_text = append_text .. "," .. coil_material
+        
+        append_text = append_text .. "\n"
+
         write(file, append_text)
         closefile(file)
     else 
