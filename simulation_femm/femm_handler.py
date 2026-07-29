@@ -1,12 +1,13 @@
 import subprocess
 import random
 import math
+import datetime
 import numpy as np
 import pandas as pd
 from pathlib import Path
 from dataclasses import dataclass, asdict
 
-number_of_simulations = 10000
+number_of_simulations = 4600
 femm_exe = r"C:\femm42\bin\femm.exe"
 
 optimal_copper_current_density = 6 #A/mm^2
@@ -42,23 +43,23 @@ class Parameters_set:
 
 def create_parameters_sets_monte_carlo(n):
     empty_materials = ["Air"]
-    depths = [5, 10, 20, 30]
+    depths = [50]
 
-    stator_r_outs = [3, 4, 6, 8, 10]
-    stator_out_ds = [1, 2, 3, 4]
+    stator_r_outs = [15.0, 16.0, 16.5, 20.0, 24.0, 25.0, 30.0]
+    stator_out_ds = [2.0, 3.0, 4.0, 5.0]
     stator_materials = ["1018 Steel"]
 
     mag_size_xs = [3.0, 4.0, 5.0, 6.0, 7.0] 
     mag_size_ys = [1.0, 1.5, 2.0, 3.0, 4.0]
-    mag_counts = [4,6,8,10,12,14]
+    mag_counts = [6,8,10,12,14]
     mag_materials = ["N35", "N42", "N52"]
 
-    rotor_core_rs = [1,2,3,4,5,6,7,8,9]
+    rotor_core_rs = [6.0, 7.5, 9.0, 10.0, 12.0, 14.0, 15.0]
     rotor_core_materials = ["1018 Steel"]
     plastic_materials = ["Air"]
 
-    coil_groove_in_rs = np.round(np.linspace(1, 10, 20)).tolist()
-    coil_groove_out_rs = np.round(np.linspace(1, 10, 20)).tolist()
+    coil_groove_in_rs = np.round(np.linspace(10, 25, 20)).tolist()
+    coil_groove_out_rs = np.round(np.linspace(10, 25, 20)).tolist()
     coil_groove_angs = np.round(np.linspace(5, 20, 20)).tolist()
     coil_groove_counts = [6,8,10,12,14] 
     coil_turnss = ["handler"]
@@ -106,8 +107,8 @@ def create_parameters_sets_monte_carlo(n):
         param_set.coil_amps = I_nom
 
         groove_A = (math.pi * (param_set.coil_groove_out_r**2 - param_set.coil_groove_in_r**2)) * (param_set.coil_groove_ang / 360)
-        n = (groove_A*optimal_copper_current_density)/S
-        param_set.coil_turns = math.floor(n)-5
+        n = (groove_A*coil_fill_factor)/S
+        param_set.coil_turns = max(1, math.floor(n))
 
         all_param_combination.append(param_set)
 
@@ -188,6 +189,7 @@ def postprocess_data(file_name):
 
 def main():
     work_dir = Path(__file__).parent.absolute()
+    print(f"Program started at: {str(datetime.datetime.now().time())}")
 
     with open(work_dir/"output.csv", "w") as file:
         file.write(f'session_id,stress_tensor_torque,air_gap,current,volts,impedance,flux_re,k_const,v_supply,omega_nom,rpm_nom,power_nom,efficiency_nom,depth,stator_r_out,stator_out_d,rotor_core_r,mag_size_x,mag_size_y,mag_count,coil_groove_in_r,coil_groove_out_r,coil_groove_ang,coil_groove_count,coil_amps,coil_turns,mag_material,rotor_core_material,stator_material,plastic_material,coil_material\n')
@@ -205,6 +207,7 @@ def main():
         subprocess.run(command, shell=True, cwd=str(work_dir), check=True)
         print("Done")
         postprocess_data(work_dir/"output.csv")
+        print(f"Program ended at: {str(datetime.datetime.now().time())}")
     except subprocess.CalledProcessError as e:
         print(f"FEMM SIMULATION ERROR: {e}")
 
