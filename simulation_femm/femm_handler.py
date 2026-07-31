@@ -7,7 +7,7 @@ import pandas as pd
 from pathlib import Path
 from dataclasses import dataclass, asdict
 
-number_of_simulations = 4600
+number_of_simulations = 128000 #4600 for 15 minutes
 femm_exe = r"C:\femm42\bin\femm.exe"
 
 optimal_copper_current_density = 6 #A/mm^2
