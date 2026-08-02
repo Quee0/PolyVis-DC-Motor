@@ -239,128 +239,89 @@ function run_calculations(parameters)
     mi_selectlabel(0, rotor_core_r+0.01)
     mi_setblockprop(plastic_material, 1, 0, "<None>", 0, 2, 0)
     mi_clearselected()
-
+    
     mi_zoomnatural()
-
+    
     mi_saveas("motor_geometry.FEM")
     -- pause()
-
+    
     mi_analyze()
     mi_loadsolution()
-
-    -- mo_showdensityplot(1, 0, 0.6, 0, "bmag")
+    
+    mo_showdensityplot(1, 0, 0.6, 0, "bmag")
     mo_groupselectblock(2)
     local stress_tensor_torque = mo_blockintegral(22)
+    mo_clearblock()
 
     -- OUTPUT
-    local file = openfile("output.csv", "a")
-    if file ~= nil then
+    local R = stator_r_out - stator_out_d
+    local w = mag_size_x
+    local h = mag_size_y
+    local d_zewn = sqrt(R^2 - (w / 2)^2)
+    local d_min = d_zewn - h
         
-        local R = stator_r_out - stator_out_d
-        local w = mag_size_x
-        local h = mag_size_y
-        local d_zewn = sqrt(R^2 - (w / 2)^2)
-        local d_min = d_zewn - h
+    local impedance_correction_factor = 1.45
+    local current, volts, flux_re = mo_getcircuitproperties("Winding")
+    local impedance = (volts/current)*impedance_correction_factor
+    local volts = current*impedance
+    local k_const = stress_tensor_torque/current
         
-        local impedance_correction_factor = 1.45
-        local current, volts, flux_re = mo_getcircuitproperties("Winding")
-        local impedance = (volts/current)*impedance_correction_factor
-        local volts = current*impedance
-        local k_const = stress_tensor_torque/current
+    local v_supply = 24 --VOLTS CHOSEN FOR COMPARASON
+    local omega_nom = (v_supply - volts)/k_const
+    local rpm_nom = (omega_nom*30)/(PI)
+    local power_nom = omega_nom * stress_tensor_torque
         
-        local v_supply = 24 --VOLTS CHOSEN FOR COMPARASON
-        local omega_nom = (v_supply - volts)/k_const
-        local rpm_nom = (omega_nom*30)/(PI)
-        local power_nom = omega_nom * stress_tensor_torque
+    local power_elec = v_supply * current
+    local efficiency_nom = (power_nom / power_elec) * 100 --%
         
-        local power_elec = v_supply * current
-        local efficiency_nom = (power_nom / power_elec) * 100 --%
+    local air_gap = d_min - coil_groove_out_r
+
+    print("")
+    print("")
+    print("index: " .. session_id)
+    print("stress_tensor_torque: " .. stress_tensor_torque)
+    print("air_gap: " .. air_gap)
         
-        local air_gap = d_min - coil_groove_out_r
-
-        local append_text = session_id
-        append_text = append_text .. "," .. stress_tensor_torque
-        append_text = append_text .. "," .. air_gap
+    print("current: " .. current)
+    print("volts: " .. volts)
+    print("impedance: " .. impedance)
+    print("flux_re: " .. flux_re)
         
-        append_text = append_text .. "," .. current
-        append_text = append_text .. "," .. volts
-        append_text = append_text .. "," .. impedance
-        append_text = append_text .. "," .. flux_re
-        
-        append_text = append_text .. "," .. k_const
-        append_text = append_text .. "," .. v_supply
-        append_text = append_text .. "," .. omega_nom
-        append_text = append_text .. "," .. rpm_nom
-        append_text = append_text .. "," .. power_nom
-        append_text = append_text .. "," .. efficiency_nom
+    print("k_const: " .. k_const)
+    print("v_supply: " .. v_supply)
+    print("omega_nom: " .. omega_nom)
+    print("rpm_nom: " .. rpm_nom)
+    print("power_nom: " .. power_nom)
+    print("efficiency_nom: " .. efficiency_nom)
 
-        append_text = append_text .. "," .. depth
+    print("depth: " .. depth)
 
-        append_text = append_text .. "," .. stator_r_out
-        append_text = append_text .. "," .. stator_out_d
-        append_text = append_text .. "," .. rotor_core_r
+    print("stator_r_out: " .. stator_r_out)
+    print("stator_out_d: " .. stator_out_d)
+    print("rotor_core_r: " .. rotor_core_r)
 
-        append_text = append_text .. "," .. mag_size_x
-        append_text = append_text .. "," .. mag_size_y
-        append_text = append_text .. "," .. mag_count
+    print("mag_size_x: " .. mag_size_x)
+    print("mag_size_y: " .. mag_size_y)
+    print("mag_count: " .. mag_count)
 
-        append_text = append_text .. "," .. coil_groove_in_r
-        append_text = append_text .. "," .. coil_groove_out_r
-        append_text = append_text .. "," .. coil_groove_ang
-        append_text = append_text .. "," .. coil_groove_count
-        append_text = append_text .. "," .. coil_amps
-        append_text = append_text .. "," .. coil_turns
+    print("coil_groove_in_r: " .. coil_groove_in_r)
+    print("coil_groove_out_r: " .. coil_groove_out_r)
+    print("coil_groove_ang: " .. coil_groove_ang)
+    print("coil_groove_count: " .. coil_groove_count)
+    print("coil_amps: " .. coil_amps)
+    print("coil_turns: " .. coil_turns)
 
-        append_text = append_text .. "," .. mag_material
-        append_text = append_text .. "," .. rotor_core_material
-        append_text = append_text .. "," .. stator_material
-        append_text = append_text .. "," .. plastic_material
-        append_text = append_text .. "," .. coil_material
-        
-        append_text = append_text .. "\n"
-
-        write(file, append_text)
-        closefile(file)
-    else 
-        print("File append error")
-    end
-
-    mo_close()
-    mi_close()
+    print("mag_material: " .. mag_material)
+    print("rotor_core_material: " .. rotor_core_material)
+    print("stator_material: " .. stator_material)
+    print("plastic_material: " .. plastic_material)
+    print("coil_material: " .. coil_material)
 end
 
 dofile("femm_input.lua")
 showconsole()
 local i = 1
 while parameters_list[i] ~= nil do
-    print("Running simulation nr: " .. i .. "   [ id: " .. parameters_list[i].session_id .. " ]")
     run_calculations(parameters_list[i])
     i = i + 1
 end
-
--- test_param = {
--- session_id = 37787,
--- empty_material = "Air",
--- depth = 5,
--- stator_r_out = 10,
--- stator_out_d = 1,
--- stator_material = "1018 Steel",
--- mag_size_x = 3.0,
--- mag_size_y = 2.0,
--- mag_count = 12,
--- mag_material = "N52",
--- rotor_core_r = 3,
--- rotor_core_material = "1018 Steel",
--- plastic_material = "Air",
--- coil_groove_in_r = 4.0,
--- coil_groove_out_r = 6.0,
--- coil_groove_ang = 13.0,
--- coil_groove_count = 14,
--- coil_turns = 16,
--- coil_amps = 7.0,
--- coil_material = "22 AWG",
--- }
-
--- run_calculations(test_param)
-
-quit()
