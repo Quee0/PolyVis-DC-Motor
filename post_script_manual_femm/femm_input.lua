@@ -17,7 +17,7 @@ coil_groove_in_r = 17.0,
 coil_groove_out_r = 22.5,
 coil_groove_ang = 18.0,
 coil_groove_count = 12,
-coil_turns = 35,
+coil_turns = 24,
 coil_amps = 1.467,
 coil_material = "22 AWG",
 }
