@@ -66,6 +66,9 @@ Main calculation done directly in FEMM is torque on rotor. I used volumetric int
 
 #### Stress tensor derivation:
 
+<details>
+<summary><b> Expand for further details </b></summary>
+
 Total electromagnetic force:
 
 $$
@@ -147,10 +150,12 @@ $$
 And finally we use the divergance theorem to get rid of nabla and replace integral type:
 
 $$
-F = \oiint_{S} \boldsymbol{\sigma} \cdot dS
+F = \int\int \boldsymbol{\sigma} \cdot dS
 $$
 
 (Complete derivation: https://en.wikipedia.org/wiki/Maxwell_stress_tensor)
+
+</details>
 
 ## 3. CAD
 
