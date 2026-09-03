@@ -1,5 +1,11 @@
 # MOTOR PROJECT -TESTNAME- ⚡️
 
+<p align="left">
+  <img src="https://img.shields.io/badge/CAD-Autodesk_Inventor-0696D7?style=flat&logo=autodesk&logoColor=white" alt="Autodesk Inventor">
+  <img src="https://img.shields.io/badge/Enclosure-3D_Printable-FF6C2A?style=flat&logo=bambulab&logoColor=white" alt="3D Printing">
+  <img src="https://img.shields.io/badge/Status-Tested_%26_Working-4C1?style=flat" alt="Status">
+</p>
+
 ## 1. Project Overview
 
 ### 1.1 General Description
@@ -28,7 +34,7 @@ Simulation of dipole distribution in a vacuum. The tool had immense educational 
 
 #### Classical Magnetic Circuit (Reluctance modeling):
 
-Another approch to this problem was to solve a magnetic circuit. This method quickly ran into a problem with calculating reluctances of airgaps. After reaserch, finding equations for different reluctances shapes and mailing a professor from my university suggested that this method cannot be precise. It failed due to a lack of reliable empirical data for the complex geometry. 
+Another approch to this problem was to solve a magnetic circuit. This method quickly ran into a problem with calculating reluctances of airgaps. After reaserch, finding equations for different reluctances shapes and mailing a professor from my university suggested that this method cannot be precise. It failed due to a lack of reliable empirical data for the complex geometry.
 
 #### Finite element analysis (FEMM & Lorentz Force):
 
@@ -39,6 +45,112 @@ To be as precise as possible in this kind of project FEA method was chosen (via 
 Utilizing the FEA environment (FEMM) to simulate the field distribution with full consideration of material non-linearities. Torque is determined directly using the Maxwell Stress Tensor. Integrating stresses over a virtual contour (volume) surrounding the rotor allows for precise inclusion of both electrodynamic and reluctance forces in a single pass. It calculates forces based on fields nonsymmetry caused by the rotor. Theoretical derivation is in math chapter. In parallel with the magnetic verification, key electrical and topological parameters were established, forming the foundation for the commutator's construction:Topology: Simplex lap winding.
 
 ## 2. Simulation & Geometry Selection
+
+The current script model for geometry optimization and selection was developed on the open-source finite element analysis tool - FEMM (`www.femm.info`). The script generates and tests various geometries, then simulates them and writes the data to Excel. On this basis, it was possible to select the target geometry and manually correct the parameters.
+
+### 2.1 Simulation Files
+
+```
+root-directory
+├── ...
+└── simulation_femm/
+    ├── femm_handler_2nd_iteration.py
+    ├── femm_handler.py
+    ├── geometry_setup.lua
+    └── output.csv
+```
+
+### 2.2 Maxwell stress tensor derivation
+
+Main calculation done directly in FEMM is torque on rotor. I used volumetric integral (surface integral in 2D) of Maxwell's stress tensor. Typical academical approach to electromagnetic problems is to treat them as tranciver and reciver. One object generates electromagnetic field and the other expirience force. Based on my reaserch this approach is insufficient. It cannot easily determine forces on ferromagnetic elements (reluctance forces). Alternative approach is derived based on assimetry of electromagnetic field. It evaluates both the electrodynamic forces acting on the coils and the reluctance forces exerted on the ferromagnetic components. While the Virtual Work method provides a viable alternative for capturing reluctance forces through magnetic energy variations, the Maxwell stress tensor was selected for its direct and computationally efficient integration along the bounding surface.
+
+#### Stress tensor derivation:
+
+Total electromagnetic force:
+
+$$
+\mathbf{F} = q(\mathbf{E} + \mathbf{v} \times \mathbf{B}) = \int\int\int (\mathbf{E} + \mathbf{v} \times \mathbf{B})\rho dV
+$$
+
+The force per unit volume is:
+
+$$
+\mathbf{f} = \rho\mathbf{E} + \mathbf{J} \times \mathbf{B}
+$$
+
+Next, charge density $\rho$ and current density $\mathbf{J}$ can be expressed in terms of fields $\mathbf{E}$ and $\mathbf{B}$, using Gauss's law and Ampère's law:
+
+$$
+\mathbf{f} = \varepsilon_0 (\nabla \cdot \mathbf{E}) \mathbf{E} + \frac{1}{\mu_0} (\nabla \times \mathbf{B}) \times \mathbf{B} - \varepsilon_0 \frac{\partial \mathbf{E}}{\partial t} \times \mathbf{B}
+$$
+
+Another transformation comes from rewriting the Poynting vector. Using the product rule and Faraday's law of gives:
+
+$$
+\frac{\partial}{\partial t} (\mathbf{E} \times \mathbf{B}) = \frac{\partial \mathbf{E}}{\partial t} \times \mathbf{B} + \mathbf{E} \times \frac{\partial \mathbf{B}}{\partial t} = \frac{\partial \mathbf{E}}{\partial t} \times \mathbf{B} - \mathbf{E} \times (\nabla \times \mathbf{E})
+$$
+
+And now $\mathbf{f}$ as:
+
+$$
+\mathbf{f} = \varepsilon_0 (\nabla \cdot \mathbf{E}) \mathbf{E} + \frac{1}{\mu_0} (\nabla \times \mathbf{B}) \times \mathbf{B} - \varepsilon_0 \frac{\partial}{\partial t} (\mathbf{E} \times \mathbf{B}) - \varepsilon_0 \mathbf{E} \times (\nabla \times \mathbf{E})
+$$
+
+Rearrange $\mathbf{E}$ and $\mathbf{B}$:
+
+$$
+\mathbf{f} = \varepsilon_0 \left[ (\nabla \cdot \mathbf{E}) \mathbf{E} - \mathbf{E} \times (\nabla \times \mathbf{E}) \right] + \frac{1}{\mu_0} \left[ -\mathbf{B} \times (\nabla \times \mathbf{B}) \right] - \varepsilon_0 \frac{\partial}{\partial t} (\mathbf{E} \times \mathbf{B})
+$$
+
+"Fixing" symmetry by inserting $0 = (\nabla \cdot \mathbf{B}) \mathbf{B}$:
+
+$$
+\mathbf{f} = \varepsilon_0 \left[ (\nabla \cdot \mathbf{E}) \mathbf{E} - \mathbf{E} \times (\nabla \times \mathbf{E}) \right] + \frac{1}{\mu_0} \left[ (\nabla \cdot \mathbf{B}) \mathbf{B} - \mathbf{B} \times (\nabla \times \mathbf{B}) \right] - \varepsilon_0 \frac{\partial}{\partial t} (\mathbf{E} \times \mathbf{B})
+$$
+
+Eliminating the crossproducts (which are complicated to calculate), using the vector calculus identity:
+
+$$
+\frac{1}{2} \nabla (\mathbf{A} \cdot \mathbf{A}) = \mathbf{A} \times (\nabla \times \mathbf{A}) + (\mathbf{A} \cdot \nabla) \mathbf{A} ,
+$$
+
+leads to:
+
+$$
+\mathbf{f} = \varepsilon_0 \left[ (\nabla \cdot \mathbf{E}) \mathbf{E} + (\mathbf{E} \cdot \nabla) \mathbf{E} \right] + \frac{1}{\mu_0} \left[ (\nabla \cdot \mathbf{B}) \mathbf{B} + (\mathbf{B} \cdot \nabla) \mathbf{B} \right] - \frac{1}{2} \nabla \left( \varepsilon_0 E^2 + \frac{1}{\mu_0} B^2 \right) - \varepsilon_0 \frac{\partial}{\partial t} (\mathbf{E} \times \mathbf{B}) .
+$$
+
+This expression contains every aspect of electromagnetism and momentum and is relatively easy to compute. It can be written more compactly by introducing the **Maxwell stress tensor**,
+
+$$
+\sigma_{ij} = \varepsilon_0 \left( E_i E_j - \frac{1}{2} \delta_{ij} E^2 \right) + \frac{1}{\mu_0} \left( B_i B_j - \frac{1}{2} \delta_{ij} B^2 \right) .
+$$
+
+All but the last term of $\mathbf{f}$ can be written as the tensor divergence of the Maxwell stress tensor, giving:
+
+$$
+\nabla \cdot \boldsymbol{\sigma} = \mathbf{f} + \varepsilon_0 \mu_0 \frac{\partial \mathbf{S}}{\partial t} ,
+$$
+
+In FEMM we analise magnetostatic problem, so time derivative of Poynting vector is always 0, so:
+
+$$
+\mathbf{f} = \nabla \cdot \boldsymbol{\sigma},
+$$
+
+We integrate force per unit volume to get total force enduced on volume:
+
+$$
+F = \int\int\int \mathbf{f} dV = \int\int\int \nabla \cdot \boldsymbol{\sigma} dV,
+$$
+
+And finally we use the divergance theorem to get rid of nabla and replace integral type:
+
+$$
+F = \oiint_{S} \boldsymbol{\sigma} \cdot dS
+$$
+
+(Complete derivation: https://en.wikipedia.org/wiki/Maxwell_stress_tensor)
 
 ## 3. CAD
 
