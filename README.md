@@ -46,6 +46,10 @@ Utilizing the FEA environment (FEMM) to simulate the field distribution with ful
 
 ## 2. Simulation & Geometry Selection
 
+<p align="center">
+  <img src="img\import\simulation_progress_gif.gif" width="1200" alt="Alt text">
+</p>
+
 The current script model for geometry optimization and selection was developed on the open-source finite element analysis tool - FEMM (`www.femm.info`). The script generates and tests various geometries, then simulates them and writes the data to Excel. On this basis, it was possible to select the target geometry and manually correct the parameters.
 
 ### 2.1 Simulation Files
@@ -154,6 +158,76 @@ F = \int\int \boldsymbol{\sigma} \cdot dS
 $$
 
 (Complete derivation: https://en.wikipedia.org/wiki/Maxwell_stress_tensor)
+
+</details>
+
+### 2.3 Motor parameters calculation model
+
+<p align="center">
+  <img src="img\import\Simulation_output_field.png" width="1200" alt="Alt text">
+  <img src="img\import\Simulation_output_console.png" alt="Alt text">
+</p>
+
+Apart from defined and read parameters, python & lua scripts calculate and evaluate more expected values.
+
+* **Torque Constant ($k_{const}$):** Determined as total electromagnetic torque (calculated using the Maxwell Stress Tensor) devided by the current flowing through the winding.
+
+$$
+k_{const} = \frac{T}{I}
+$$
+
+* **Back EMF:** The script calculates the voltage drop across the windings, incorporating a correction factor of $1.45$. The electromotive force is the difference between the defined supply voltage ($V_{supply} = 24\text{ V}$) and this voltage drop.
+
+$$
+EMF = V_{supply} - (I \cdot Z)
+$$
+
+* **Rotational Speed ($\omega$):** The angular velocity ($\omega$) in radians per second is the Back-EMF devided by the torque constant.
+
+$$
+\omega = \frac{EMF}{k_{const}}
+$$
+
+It can be later recalculated into RPM:
+
+$$
+RPM = \omega \cdot \frac{30}{\pi}
+$$
+
+* **Energy Efficiency ($\eta$):** Defined as the ratio of useful mechanical power to the total electrical power consumed. In non ideal reality efficienty is lower, because of work done by resistance forces. Despite that, this calculation allowed to compare different geometries.
+
+$$
+\eta = \frac{\omega \cdot T}{V_{supply} \cdot I} \cdot 100\%
+$$
+
+---
+
+<details>
+<summary><b> Verification of the output parameters: </b></summary>
+
+* Electromagnetic torque ($T$): $-0.055\text{ Nm}$
+* Current ($I$): $1.47\text{ A}$
+* Voltage drop ($V_{drop}$): $0.973\text{ V}$
+* Supply voltage ($V_{supply}$): $24\text{ V}$
+* **Torque constant ($k_t$):**
+
+$$k_const = \frac{-0.055}{1.467} = -0.0375$$
+
+* **Nominal angular velocity ($\omega$):**
+
+$$\omega = \frac{24 - 0.973}{-0.0375} = -613.3 \text{ rad/s}$$
+
+* **Rotational speed (RPM):**
+
+$$RPM = -613.3 \cdot \frac{30}{\pi} = -5856.6$$
+
+* **Useful mechanical power ($P_{mech}$):**
+
+$$P_{mech} = -613.3 \cdot (-0.055) = 33.8 \text{ W}$$
+
+* **Total efficiency ($\eta$):**
+
+$$\eta = \frac{33.8}{24 \cdot 1.467} \cdot 100 = 95.95 \%$$
 
 </details>
 
