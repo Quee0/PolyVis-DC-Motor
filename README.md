@@ -1,4 +1,4 @@
-# MOTOR PROJECT -TESTNAME- ⚡️
+# MOTOR PROJECT PolyVis DC Motor ⚡️
 
 <p align="left">
   <img src="https://img.shields.io/badge/CAD-Autodesk_Inventor-0696D7?style=flat&logo=autodesk&logoColor=white" alt="Autodesk Inventor">
