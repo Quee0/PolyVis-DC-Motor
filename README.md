@@ -14,41 +14,65 @@
 
 ### 1.1 General Description
 
+PolyVis is a fully functional, hybrid (3D-printed plastic + solid steel) brushed DC motor designed from scratch. The main goal was to create viable DC Motor, that can be built without expensive tools and hard-to-source materials. Furthermore its development was an R&D process bringing theoretical electromagnetism, Finite Element Analysis (FEA), and practical DIY manufacturing.
+
+> [!NOTE]
+> **This includes:**
+>
+> * Automated FEA methodology utilizing custom Python and Lua scripts for geometry generation and simulation,
+> * Advanced parameters calculations using the Maxwell Stress Tensor to evaluate both electrodynamic and reluctance forces,
+> * Real world characteristics reaserch,
+> * Two-layer simplex lap winding integrated with a 6-segment commutator for smooth current switching,
+> * Hybrid material architecture bridging the gap between accessible 3D printing and necessary ferromagnetic properties.
+
+The end result is a fully functional prototype capable of validating theoretical models in the real world, demonstrating a practical understanding of electromagnetic design and applied physics.
+
 ### 1.2 Project & Idea Evolution
 
 Initial assumptions involved building a brushed motor using easily available materials (3D printing, off-the-shelf parts). Method of estimating parameters, and whole project concept underwent a drastic and necessary transformation.
 
 ### 1.2.1 Material selection
 
-#### All-Plastic Construction:
+#### ❌ All-Plastic Construction:
 
-The original idea relied on 3D printing entire motor (except for the windings and magnets). It is quite common approch in DIY projects that demonstrates the working mechanism of brushed DC motor (or BLDC). This design was abandoned. Plastic has a magnetic permeability close to that of a vacuum ( $\mu \approx \mu_0$ ). The lack of a ferromagnetic material in the magnetic circuit makes concentrating the magnetic flux impossible, which in practice means drastically low efficiency and negligible torque.
+The original idea relied on 3D printing entire motor (except for the windings and magnets). It is quite common approch in DIY projects that demonstrates the working mechanism of brushed DC motor (or BLDC). This design was abandoned.
 
-#### Hybrid Construction (Plastic + Solid Steel):
+> [!NOTE]
+> Plastic has a magnetic permeability close to that of a vacuum ( $\mu \approx \mu_0$ ). The lack of a ferromagnetic material in the magnetic circuit makes concentrating the magnetic flux impossible, which in practice means drastically low efficiency and negligible torque.
 
-To solve the lack of a ferromagnetics, the concept evolved into a hybrid solution. The rotor would be a plastic skeleton with an embedded steel core, and the stator is based on a solid steel pipe. To generate a strong 2-pole field using standard components, a multi-segment architecture was adopted. One half of the inner circumference is lined with small magnets facing with their N pole, and the other half with their S pole. Solid steel is exposed to eddy currents, which would melt whole construction. Because this engine would be limited by its hybrid approch, the change of magnetic field in stator (eddy currents) would be negligible. On the other hand, rotor must be laminated. This hybrid was a conscious compromise. The lower efficiency and losses of this construction were accepted. This is a trade-off allows for the fabrication of a prototype in a home workshop environment.
+#### ✅ Hybrid Construction (Plastic + Solid Steel):
+
+To solve the lack of a ferromagnetics, the concept evolved into a hybrid solution. The rotor would be a plastic skeleton with an embedded steel core, and the stator is based on a solid steel pipe. To generate a strong 2-pole field using standard components, a multi-segment architecture was adopted. One half of the inner circumference is lined with small magnets facing with their N pole, and the other half with their S pole.
+
+> [!NOTE]
+> Solid steel is exposed to eddy currents, which would melt whole construction. Because this engine would be limited by its hybrid approch, the change of magnetic field in stator (eddy currents) would be negligible. On the other hand, rotor must be laminated. This hybrid was a conscious compromise. The lower efficiency and losses of this construction were accepted. This is a trade-off allows for the fabrication of a prototype in a home workshop environment.
 
 ### 1.2.2 Evolution of the Computational Methodology
 
 Determining the forces and torque required the creation of a reliable mathematical model. This model went through successive stages, discarding simplified assumptions in favor of a full electromagnetic simulation.
 
-#### Custom Python Script:
+**1. Custom Python Script:**
 
-Simulation of dipole distribution in a vacuum. The tool had immense educational value and developed physical intuition, but the script could not model the ferromagnetic material behaviour. This solution was rejected as the primary design tool. Nonetheless this project is a great educational tool and an enormous help for visualising magnetic field in free space. Mathematics was derived and developed based on equations "Introduction to Electrodynamics" by David J. Griffiths - a foundational text in the field. Whole repository is available as a standalone project here: https://github.com/Quee0/dipole-magnetostatic-solver.
+* **Idea:** Custom simulation script of dipole distribution in a vacuum. The tool had immense educational value and developed physical intuition, but the script could not model the ferromagnetic material behaviour.
+* **Verdict:** This solution was rejected as the primary design tool. Nonetheless this project is a great educational tool and an enormous help for visualising magnetic field in free space. Mathematics was derived and developed based on equations "Introduction to Electrodynamics" by David J. Griffiths - a foundational text in the field.
+  *Note: The code was spun off into a standalone repository:* [`dipole-magnetostatic-solver`](https://github.com/Quee0/dipole-magnetostatic-solver).
 
-#### Classical Magnetic Circuit (Reluctance modeling):
+**2. Classical Magnetic Circuit (Reluctance modeling):**
 
-Another approch to this problem was to solve a magnetic circuit. This method quickly ran into a problem with calculating reluctances of airgaps. After reaserch, finding equations for different reluctances shapes and mailing a professor from my university suggested that this method cannot be precise. It failed due to a lack of reliable empirical data for the complex geometry.
+* **Idea:** Another approch to this problem was to solve a magnetic circuit. This method quickly ran into a problem with calculating reluctances of airgaps.
+* **Verdict:** After reaserch, finding equations for different reluctances shapes and mailing a professor from my university suggested that this method cannot be precise. It failed due to a lack of reliable empirical data for the complex geometry.
 
 #### Finite element analysis (FEMM & Lorentz Force):
 
-To be as precise as possible in this kind of project FEA method was chosen (via free FEMM software). Initial thought was to simulate wide range of geometries and then integrate forces acting solely on current-carrying conductors placed in the slots. This method is used in standard electrodynamics courses, but it does not consider reluctance forces (lorenz force on ferromagnetics carrying the current). Upon further reaserch I choose to stick to FEMM software and develop results based on Maxwell stress tensor.
+* **Idea:** To be as precise as possible in this kind of project FEA method was chosen (via free FEMM software). Initial thought was to simulate wide range of geometries and then integrate forces acting solely on current-carrying conductors placed in the slots.
+* **Verdict:** This method is used in standard electrodynamics courses, but it does not consider reluctance forces (lorenz force on ferromagnetics carrying the current). Upon further reaserch I choose to stick to FEMM software and develop results based on Maxwell stress tensor.
 
 #### Final Model (FEA FEMM & Maxwell Stress Tensor):
 
-Utilizing the FEA environment (FEMM) to simulate the field distribution with full consideration of material non-linearities. Torque is determined directly using the Maxwell Stress Tensor. Integrating stresses over a virtual contour (volume) surrounding the rotor allows for precise inclusion of both electrodynamic and reluctance forces in a single pass. It calculates forces based on fields nonsymmetry caused by the rotor. Theoretical derivation is in math chapter. In parallel with the magnetic verification, key electrical and topological parameters were established, forming the foundation for the commutator's construction:Topology: Simplex lap winding.
+* **Idea:** Utilizing the FEA environment (FEMM) to simulate the field distribution with full consideration of material non-linearities. Torque is determined directly using the Maxwell Stress Tensor.
+* **Verdict:** Integrating stresses over a virtual contour (volume) surrounding the rotor allows for precise inclusion of both electrodynamic and reluctance forces in a single pass. It calculates forces based on fields nonsymmetry caused by the rotor. Theoretical derivation is in math chapter. In parallel with the magnetic verification, key electrical and topological parameters were established, forming the foundation for the commutator's construction:Topology: Simplex lap winding.
 
-## 2. Simulation & Geometry Selection
+## 2. Simulation, Calculations & Geometry Selection
 
 <p align="center">
   <img src="img\import\simulation_progress_gif.gif" width="1200" alt="Alt text">
@@ -68,7 +92,35 @@ root-directory
     └── output.csv
 ```
 
-### 2.2 Maxwell stress tensor derivation
+**2nd iteration arised after aknowleding parameter problems in the first one. You can change parameters in either of them.**
+
+### 2.2 Running the Simulation
+
+The simulation process has been fully automated using Python and Lua scripts. Python generates geometries and later opens FEMM with lua scripting. To run this script, you need to set up the appropriate working environment.
+
+* **Install Python** (version 3.x).
+* **Install FEMM 4.2** (Finite Element Method Magnetics).
+
+> [!WARNING]
+> **Critical path requirement:** The main Python script calls the simulation engine directly. During the FEMM installation, make sure the destination path is exactly (or change destination in script):
+> `C:\femm42\bin\femm.exe`
+
+The script utilizes external libraries for data handling and generating final result spreadsheets. Install them using the `pip` package manager:
+
+```bash
+pip install numpy pandas xlsxwriter
+```
+
+To begin the Monte Carlo simulation, open a terminal in the target folder and run the script:
+
+```bash
+python femm_handler_2nd_iteration.py
+```
+
+**Background execution process:**
+Upon launch, the script will automatically generate the `femm_input.lua` parameter batch file and execute the FEMM engine. Each valid geometry will be simulated and temporarily saved to the `output.csv` file. Once all iterations are complete, the script will sort the data by the highest torque and export a clean spreadsheet named `Simulation_output.xlsx`.
+
+### 2.3 Maxwell stress tensor derivation
 
 Main calculation done directly in FEMM is torque on rotor. I used volumetric integral (surface integral in 2D) of Maxwell's stress tensor. Typical academical approach to electromagnetic problems is to treat them as tranciver and reciver. One object generates electromagnetic field and the other expirience force. Based on my reaserch this approach is insufficient. It cannot easily determine forces on ferromagnetic elements (reluctance forces). Alternative approach is derived based on assimetry of electromagnetic field. It evaluates both the electrodynamic forces acting on the coils and the reluctance forces exerted on the ferromagnetic components. While the Virtual Work method provides a viable alternative for capturing reluctance forces through magnetic energy variations, the Maxwell stress tensor was selected for its direct and computationally efficient integration along the bounding surface.
 
@@ -137,7 +189,7 @@ $$F = \int\int \boldsymbol{\sigma} \cdot dS$$
 
 </details>
 
-### 2.3 Motor parameters calculation model
+### 2.4 Motor parameters calculation model
 
 <p align="center">
   <img src="img\import\Simulation_output_field.png" width="1200" alt="Alt text">
@@ -197,6 +249,29 @@ $$\eta = \frac{33.8}{24 \cdot 1.467} \cdot 100 = 95.95 \%$$
 
 </details>
 
-## 3. CAD
+### 2.5 Winding schamatic
 
-## 4. Bill of materials
+This construction utilizes a two-layer simplex lap winding. It is integrated with a 12-slot core and a 6-segment commutator. The winding process begins at `Plate 1` which, at the illustrated commutation moment, serves as the positive voltage application point. The wire forms the first coil (L1) spanning from slot 1 to 7, and then directly proceeds to form the second coil (L2) routed through slots 2 to 8. This dual series sequence terminates at `Plate 2`. This configuration is replicated symmetrically around the entire commutator. The topology completes its loop by physically connecting the output of the final coil L12 (12-6) back to the initial `Plate 1`. After `Plate 4`, coils are wound as a second layer. It allows for the utilization of all plates while maintaining one-way current flow within each slot. Positioning the opposite power terminal (GND) on `Plate 4` effectively divides this closed circuit into two symmetrical, parallel current branches.
+
+<p align="center">
+  <img src="img\import\Commutator_switching_schematic.png" width="1200" alt="Alt text">
+</p>
+
+## 3. Physical Build
+
+### 3.X Motor Performance Characteristics
+
+To fully validate the physical build motor, its real-world performance is mapped against standard brushed DC motor characteristic curves. These idealized curves illustrate how the machine's primary parameters behave as the mechanical load (Torque) on the shaft increases from a free-spinning state (No-Load) to a complete stop (Stall).
+
+<p align="center">
+  <img src="img\import\dc_motor_characteristics.png" width="1200" alt="Alt text">
+</p>
+
+* **Rotational Speed ($\omega$):** Exhibits a linear decline as torque increases. The motor operates at its highest velocity under no load ($n_0$) and linearly drops to zero when the load exceeds the motor's capacity (Stall Torque).
+* **Current Draw ($I$):** Shows a direct, linear increase proportional to the applied torque. It begins at a minimal no-load current (the energy required to overcome internal mechanical friction and magnetic losses) and reaches its absolute peak at stall condition.
+* **Mechanical Output Power ($P_{out}$):** Forms a classic parabolic curve. Since mechanical power is the product of angular speed and torque ($P = \omega \cdot \tau$), it equals zero at both extremes (no torque and no speed). The maximum output power ($P_{2max}$) is theoretically achieved exactly at 50% of the stall torque and 50% of the no-load speed.
+* **Efficiency ($\eta$):** Represents the ratio of useful mechanical power output to the electrical power input. The efficiency rises sharply to its maximum peak ($\eta_{max}$) at relatively low torque values (typically around 10-20% of the stall torque, often denoted as roughly $1/7 M_h$). Beyond this optimal point, as current (and resistive $I^2R$ heating) increases drastically, efficiency gradually drops to zero at the stall point.
+
+## 4. CAD
+
+## 5. Bill of materials
