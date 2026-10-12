@@ -315,6 +315,7 @@ The project includes custom `.stl` files for a 3D-printable, designed from the g
   <img src="model\renders\brush_cart_outer_holder.png" width="1200" alt="Alt text">
 </p>
 
+</details>
 
 ### 3.X Stator production
 
