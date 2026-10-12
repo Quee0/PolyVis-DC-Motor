@@ -127,7 +127,7 @@ Main calculation done directly in FEMM is torque on rotor. I used volumetric int
 #### Stress tensor derivation:
 
 <details>
-<summary><b> Expand for further details </b></summary>
+<summary><h3><code> Expand for further details </code></h3></summary>
 
 Total electromagnetic force:
 
@@ -221,7 +221,7 @@ $$\eta = \frac{\omega \cdot T}{V_{supply} \cdot I} \cdot 100\%$$
 ---
 
 <details>
-<summary><b> Verification of the output parameters: </b></summary>
+<summary><h3><code> Verification of the output parameters: </code></h3></summary>
 
 * Electromagnetic torque ($T$): $-0.055\text{ Nm}$
 * Current ($I$): $1.47\text{ A}$
@@ -258,6 +258,67 @@ This construction utilizes a two-layer simplex lap winding. It is integrated wit
 </p>
 
 ## 3. Physical Build
+
+### 3.1 Print elements production
+
+The project includes custom `.stl` files for a 3D-printable, designed from the ground up for mechanical reliability and easy assembly.
+
+* Rigid Construction - engineered for high structural stability. The enclosure easily withstands the mechanical stress flexing or bending. Furthermore it is strengrhend by steel stator inside.
+* Modular design - most elements are combined into part-assemblies. This approach allows to make manual changes if needed - building commutator/rotor/brushes.
+* Durable Fastening - the design utilizes M2 heat-set threaded inserts, providing strong, reusable machine-screw connections for the backplate instead of easily stripped plastic threads.
+* Accessible Dual-Color Graphics - the front panel design allows for a professional, two-color aesthetic without the need for an AMS (Automatic Material System). The graphics are printed at a specific height, allowing you to achieve the dual-color look simply by pausing the print and manually swapping the filament.
+
+<details>
+<summary><h3><code> Printed elements renders: </code></h3></summary>
+
+<p align="center">
+  <img src="model\renders\casing_cylindrical.png" width="1200" alt="Alt text">
+</p>
+
+<p align="center">
+  <img src="model\renders\back_sleeve.png" width="1200" alt="Alt text">
+</p>
+
+<p align="center">
+  <img src="model\renders\magnet_ring.png" width="1200" alt="Alt text">
+</p>
+
+<p align="center">
+  <img src="model\renders\rotor_plastic.png" width="1200" alt="Alt text">
+</p>
+
+<p align="center">
+  <img src="model\renders\sleeve.png" width="1200" alt="Alt text">
+</p>
+
+<p align="center">
+  <img src="model\renders\shaft_lock.png" width="1200" alt="Alt text">
+</p>
+
+<p align="center">
+  <img src="model\renders\rotor_sleeve.png" width="1200" alt="Alt text">
+</p>
+
+<p align="center">
+  <img src="model\renders\name_plate.png" width="1200" alt="Alt text">
+</p>
+
+<p align="center">
+  <img src="model\renders\commutator_plastic.png" width="1200" alt="Alt text">
+</p>
+
+<p align="center">
+  <img src="model\renders\brush_holder_batt.png" width="1200" alt="Alt text">
+</p>
+
+<p align="center">
+  <img src="model\renders\brush_cart_outer_holder.png" width="1200" alt="Alt text">
+</p>
+
+
+### 3.X Stator production
+
+### 3.X Commutator plates production
 
 ### 3.X Motor Performance Characteristics
 
